@@ -2,6 +2,16 @@
 
 本项目的所有重大变更都将记录在此文件中。
 
+## [1.7.0] - 2026-08-04
+
+### Added
+
+- 🆕 **HTTP / Docker 部署**: 新增 Streamable HTTP 传输（`MCP_TRANSPORT=http` 或 `--http`），支持局域网多客户端共享一个实例；可选 Bearer token 鉴权（`MCP_HTTP_TOKEN`）、CORS、会话 TTL 清理与健康检查端点；附带 `Dockerfile` 与 `test:http` 传输测试（无需 API key）
+
+### Compatibility
+
+- stdio 模式与既有配置完全不变；HTTP 模式为增量能力，所有新增 env 均为可选
+
 ## [1.6.1] - 2026-08-04
 
 ### Changed

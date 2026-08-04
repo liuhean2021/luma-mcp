@@ -12,6 +12,7 @@ English | [中文](../README.md)
 - **Unified preprocessing pipeline** for local files, remote URLs, and Data URIs
 - **Works well for** code screenshots, UI screenshots, error screens, documents, and OCR
 - **Standard MCP integration** for Claude Desktop, Cline, Claude Code, and similar clients
+- **HTTP / Docker deployment** to share a single instance across LAN clients (v1.7.0+)
 - **Built-in retry** for transient request failures
 
 ## Quick Start
@@ -116,6 +117,47 @@ Point to the local `build/index.js` (replace `<project-path>` with your absolute
 
 If your MCP client supports a working directory, you can also use the relative path `build/index.js` with cwd set to the project root.
 
+### HTTP / Docker deployment (LAN sharing, v1.7.0+)
+
+The default transport is stdio (local process). To share one instance across multiple clients on your LAN, switch to **Streamable HTTP**:
+
+```bash
+# Run locally over HTTP
+MCP_TRANSPORT=http MCP_HTTP_PORT=3000 MCP_HTTP_TOKEN=your-token node build/index.js
+```
+
+Docker:
+
+```bash
+docker build -t luma-mcp .
+docker run -d --name luma-mcp -p 3000:3000 \
+  -e MODEL_PROVIDER=zhipu \
+  -e ZHIPU_API_KEY=your-api-key \
+  -e MCP_HTTP_TOKEN=your-token \
+  luma-mcp
+```
+
+Client config (Claude Desktop / Cline and other clients that support URL-based servers):
+
+```json
+{
+  "mcpServers": {
+    "luma": {
+      "type": "http",
+      "url": "http://<server-ip>:3000/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token"
+      }
+    }
+  }
+}
+```
+
+> [!IMPORTANT]
+> **Always set `MCP_HTTP_TOKEN`**: in HTTP mode anyone who can reach the port can call `image_understand` and consume your model API quota.
+>
+> **Image source limits**: in HTTP mode `image_source` only supports HTTP(S) URLs and Data URIs; **local file paths do not work** (the server runs remotely and cannot read client files). Data URI images are limited to ~10MB (request body cap is 30MB).
+
 ### Custom Provider (v1.5.0+)
 
 Use any OpenAI-compatible endpoint (OpenAI, OpenRouter, Together AI, Anthropic proxy, local vLLM/Ollama, etc.):
@@ -201,6 +243,10 @@ image_understand({
 | `BASE_VISION_PROMPT` | built-in default | Override the base vision prompt (empty string disables it) |
 | `INCLUDE_META` | `false` | Append preprocess/API timing metadata to tool results when `true` |
 | `LUMA_DEBUG` | off | `1`/`true` is equivalent to enabling `INCLUDE_META` |
+| `MCP_TRANSPORT` | `stdio` | Transport: `stdio` (default) or `http` (Streamable HTTP) |
+| `MCP_HTTP_HOST` | `0.0.0.0` | HTTP mode listen address (must be `0.0.0.0` inside Docker) |
+| `MCP_HTTP_PORT` | `3000` | HTTP mode listen port |
+| `MCP_HTTP_TOKEN` | empty (no auth) | HTTP mode Bearer token; **required for LAN sharing** |
 
 > [!IMPORTANT]
 > **Special Note on Token Limits:**
@@ -235,6 +281,9 @@ npm run test:unit
 # MCP stdio end-to-end test (real image_understand call)
 npm run test:mcp
 
+# MCP HTTP transport test (no API key required)
+npm run test:http
+
 # Basic test
 npm run test:local ./test.png
 
@@ -262,6 +311,7 @@ npm run typecheck
 luma-mcp/
 ├── src/
 │   ├── index.ts                      # MCP server entry, registers image_understand
+│   ├── http-server.ts                # Streamable HTTP transport (auth/session/CORS)
 │   ├── config.ts                     # Env var loading and validation
 │   ├── constants.ts                  # Default vision prompt and shared constants
 │   ├── task-types.ts                 # Optional task_type routing
@@ -285,7 +335,9 @@ luma-mcp/
 │   ├── test-custom.ts                # CustomClient unit tests
 │   ├── test-task-types.ts            # task_type routing tests
 │   ├── test-mcp-stdio.ts             # MCP stdio end-to-end test
+│   ├── test-mcp-http.ts              # MCP HTTP transport test (no API key)
 │   └── image-processor-regression.ts # Image processing regression tests
+├── Dockerfile                        # Containerized deployment for HTTP mode
 ├── docs/
 │   └── README_EN.md
 ├── build/                            # Compiled output

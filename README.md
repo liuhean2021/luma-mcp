@@ -12,6 +12,7 @@
 - **统一预处理链路**：本地文件、远程 URL、Data URI 都进入同一套处理流程
 - **适用场景完整**：代码截图、UI 截图、报错截图、文档截图、OCR
 - **标准 MCP 协议**：可接入 Claude Desktop、Cline、Claude Code 等客户端
+- **HTTP / Docker 部署**：局域网内多客户端共享一个实例（v1.7.0+）
 - **内置重试**：降低临时网络或模型请求失败带来的影响
 
 ## 快速开始
@@ -116,6 +117,47 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_K
 
 若 MCP 客户端支持设置工作目录，也可直接使用相对路径 `build/index.js` 并把 cwd 指向项目根目录。
 
+### HTTP / Docker 部署（局域网共享，v1.7.0+）
+
+默认走 stdio（本地进程）。需要局域网内多个客户端共享一个实例时，改用 **Streamable HTTP** 传输：
+
+```bash
+# 本地直接运行（HTTP 模式）
+MCP_TRANSPORT=http MCP_HTTP_PORT=3000 MCP_HTTP_TOKEN=your-token node build/index.js
+```
+
+Docker 部署：
+
+```bash
+docker build -t luma-mcp .
+docker run -d --name luma-mcp -p 3000:3000 \
+  -e MODEL_PROVIDER=zhipu \
+  -e ZHIPU_API_KEY=your-api-key \
+  -e MCP_HTTP_TOKEN=your-token \
+  luma-mcp
+```
+
+客户端配置（Claude Desktop / Cline 等支持 URL 方式的客户端）：
+
+```json
+{
+  "mcpServers": {
+    "luma": {
+      "type": "http",
+      "url": "http://<服务器IP>:3000/mcp",
+      "headers": {
+        "Authorization": "Bearer your-token"
+      }
+    }
+  }
+}
+```
+
+> [!IMPORTANT]
+> **务必设置 `MCP_HTTP_TOKEN`**：HTTP 模式下任何能访问该端口的人都能调用 `image_understand`，消耗你的模型 API 额度。
+>
+> **图片来源限制**：HTTP 模式下 `image_source` 只支持 HTTP(S) URL 与 Data URI，**本地文件路径不可用**（服务端在远端，读不到客户端文件）；Data URI 传入的图片上限约 10MB（受请求体 30MB 限制）。
+
 ### Custom Provider（v1.5.0+）
 
 使用任意 OpenAI 兼容端点（OpenAI、OpenRouter、Together AI、Anthropic 代理、本地 vLLM/Ollama 等）：
@@ -201,6 +243,10 @@ image_understand({
 | `BASE_VISION_PROMPT` | 内置默认值 | 自定义基础视觉提示词（设为空字符串可关闭） |
 | `INCLUDE_META` | `false` | 为 `true` 时在工具结果末尾附加预处理/API 耗时等 meta |
 | `LUMA_DEBUG` | 关闭 | `1`/`true` 时等同开启 `INCLUDE_META` |
+| `MCP_TRANSPORT` | `stdio` | 传输方式：`stdio`（默认）或 `http`（Streamable HTTP） |
+| `MCP_HTTP_HOST` | `0.0.0.0` | HTTP 模式监听地址（Docker 内需为 `0.0.0.0`） |
+| `MCP_HTTP_PORT` | `3000` | HTTP 模式监听端口 |
+| `MCP_HTTP_TOKEN` | 空（不鉴权） | HTTP 模式 Bearer token；**局域网共享务必设置** |
 
 > [!IMPORTANT]
 > **关于 Token 限制的特别说明：**
@@ -236,6 +282,9 @@ npm run test:unit
 # MCP stdio 端到端测试（真实调用 image_understand）
 npm run test:mcp
 
+# MCP HTTP 传输测试（无需 API key）
+npm run test:http
+
 # 基础测试
 npm run test:local ./test.png
 
@@ -263,6 +312,7 @@ npm run typecheck
 luma-mcp/
 ├── src/
 │   ├── index.ts                      # MCP 服务器入口，注册 image_understand
+│   ├── http-server.ts                # Streamable HTTP 传输层（鉴权/会话/CORS）
 │   ├── config.ts                     # 环境变量加载与校验
 │   ├── constants.ts                  # 默认视觉提示词等常量
 │   ├── task-types.ts                 # 可选 task_type 路由
@@ -286,7 +336,9 @@ luma-mcp/
 │   ├── test-custom.ts                # CustomClient 单元测试
 │   ├── test-task-types.ts            # task_type 路由测试
 │   ├── test-mcp-stdio.ts             # MCP stdio 端到端测试
+│   ├── test-mcp-http.ts              # MCP HTTP 传输测试（无需 API key）
 │   └── image-processor-regression.ts # 图片处理回归测试
+├── Dockerfile                        # HTTP 模式容器化部署
 ├── docs/
 │   └── README_EN.md
 ├── build/                            # 编译产物

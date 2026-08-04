@@ -11,9 +11,10 @@ setupConsoleRedirection();
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { startHttpServer } from "./http-server.js";
 import { z } from "zod";
 import { readFileSync } from "fs";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
 
 import {
@@ -126,7 +127,7 @@ async function prepareImageInput(
 /**
  * 创建 MCP 服务器
  */
-async function createServer() {
+export async function createServer() {
   const version = readPackageVersion();
   logger.info("Initializing Luma MCP Server", { version });
 
@@ -302,11 +303,30 @@ async function createServer() {
 
 async function main() {
   try {
+    const version = readPackageVersion();
     const server = await createServer();
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
 
-    logger.info("Luma MCP server started successfully on stdio");
+    // HTTP 模式：MCP_TRANSPORT=http 或 --http 参数（局域网共享 / Docker 部署）
+    const httpMode =
+      process.argv.includes("--http") ||
+      process.env.MCP_TRANSPORT?.toLowerCase() === "http";
+
+    if (httpMode) {
+      const httpServer = await startHttpServer(server, { version });
+      const address = httpServer.address();
+      const port =
+        typeof address === "object" && address ? address.port : undefined;
+      logger.info("Luma MCP server started successfully on streamable HTTP", {
+        host: process.env.MCP_HTTP_HOST || "0.0.0.0",
+        port,
+        auth: process.env.MCP_HTTP_TOKEN ? "enabled" : "disabled",
+      });
+    } else {
+      const transport = new StdioServerTransport();
+      await server.connect(transport);
+
+      logger.info("Luma MCP server started successfully on stdio");
+    }
   } catch (error) {
     logger.error("Failed to start Luma MCP server", {
       error: error instanceof Error ? error.message : String(error),
@@ -338,4 +358,12 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-main();
+// 仅在直接执行时启动（测试 import 本模块时跳过）
+const isMainModule =
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]).toLowerCase() ===
+    fileURLToPath(import.meta.url).toLowerCase();
+
+if (isMainModule) {
+  main();
+}
