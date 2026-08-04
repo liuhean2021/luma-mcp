@@ -2,6 +2,22 @@
 
 本项目的所有重大变更都将记录在此文件中。
 
+## [1.6.1] - 2026-08-04
+
+### Changed
+
+- 📝 **README 重构**: 中英文文档结构重组（配置 / 使用 / 环境变量分区），补齐缺失的 `TEMPERATURE`、`TOP_P`、`ENABLE_THINKING`、`MULTI_CROP`、`MULTI_CROP_MAX_TILES`、`INCLUDE_META`、`LUMA_DEBUG` 说明，修正 `TOP_P` 默认值为 `0.95`，更新项目结构与测试命令
+- 🔧 **`.env.example` 对齐**: `MAX_TOKENS` 示例值改为 `8192`、`TOP_P` 改为 `0.95`，与代码默认值保持一致
+
+### Fixed
+
+- 🧹 **清理死代码与冗余**: 删除无调用者的 `LRUCache.clear()`；移除 `CustomClient` 无效的 thinking 配置传递与冗余 `customModelName` 字段；移除 `enableThinkingFieldWhen` 未使用分支；`withRetry` 类型由 `any[]` 收紧为泛型
+
+### Compatibility
+
+- 无行为变更：所有清理均为删除无调用者的代码，API 请求与识图链路行为不变
+- 验证：`npm run typecheck` 通过；`npm run test:unit` 13/13 通过；真实大图（1920×1080）端到端识图 + 多裁剪 3 图回归通过
+
 ## [1.6.0] - 2026-07-20
 
 ### Added
