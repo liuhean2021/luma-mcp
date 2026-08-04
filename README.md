@@ -6,13 +6,13 @@
 
 ## 特性
 
-- 多模型支持：GLM-4.6V、DeepSeek-OCR、Qwen3-VL-Flash、Doubao-Seed-1.6、Hunyuan-Vision-1.5
-- 单工具设计：统一通过 `image_understand` 完成图片理解
-- 面向复杂截图优化：支持大图多裁剪、文本密集场景保真处理
-- 统一预处理链路：本地文件、远程 URL、Data URI 都进入同一套处理流程
-- 适用场景完整：代码截图、UI 截图、报错截图、文档截图、OCR
-- 标准 MCP 协议：可接入 Claude Desktop、Cline、Claude Code 等客户端
-- 内置重试：降低临时网络或模型请求失败带来的影响
+- **多模型支持**：GLM-4.6V、DeepSeek-OCR、Qwen3-VL-Flash、Doubao-Seed-1.6、Hunyuan-Vision
+- **单工具设计**：统一通过 `image_understand` 完成图片理解，兼容旧客户端
+- **面向复杂截图优化**：大图自动多裁剪、文本密集场景保真处理
+- **统一预处理链路**：本地文件、远程 URL、Data URI 都进入同一套处理流程
+- **适用场景完整**：代码截图、UI 截图、报错截图、文档截图、OCR
+- **标准 MCP 协议**：可接入 Claude Desktop、Cline、Claude Code 等客户端
+- **内置重试**：降低临时网络或模型请求失败带来的影响
 
 ## 快速开始
 
@@ -23,6 +23,14 @@
 
 ### 安装
 
+直接通过 `npx` 运行（无需本地安装）：
+
+```bash
+npx -y luma-mcp
+```
+
+或从源码构建：
+
 ```bash
 git clone https://github.com/JochenYang/luma-mcp.git
 cd luma-mcp
@@ -30,15 +38,11 @@ npm install
 npm run build
 ```
 
-也可以在 MCP 配置中直接使用：
-
-```bash
-npx -y luma-mcp
-```
-
 ## 配置
 
-### Claude Desktop 示例
+### 基础配置（npx 方式）
+
+在 MCP 客户端的 `mcpServers` 中注册（Claude Desktop、Cline / VSCode 通用）：
 
 ```json
 {
@@ -55,45 +59,24 @@ npx -y luma-mcp
 }
 ```
 
-把 `MODEL_PROVIDER` 和对应密钥替换为你实际使用的提供商：
+将 `MODEL_PROVIDER` 与对应的 API Key 环境变量替换为实际使用的提供商：
 
-- `zhipu` -> `ZHIPU_API_KEY`
-- `siliconflow` -> `SILICONFLOW_API_KEY`
-- `qwen` -> `DASHSCOPE_API_KEY`
-- `volcengine` -> `VOLCENGINE_API_KEY`
-- `hunyuan` -> `HUNYUAN_API_KEY`
-- `custom` -> `CUSTOM_API_KEY` + `CUSTOM_BASE_URL` + `CUSTOM_MODEL_NAME`（任意 OpenAI 兼容端点）
+| `MODEL_PROVIDER` | API Key 环境变量 |
+| ---------------- | ---------------- |
+| `zhipu` | `ZHIPU_API_KEY` |
+| `siliconflow` | `SILICONFLOW_API_KEY` |
+| `qwen` | `DASHSCOPE_API_KEY` |
+| `volcengine` | `VOLCENGINE_API_KEY` |
+| `hunyuan` | `HUNYUAN_API_KEY` |
+| `custom` | `CUSTOM_API_KEY` + `CUSTOM_BASE_URL` + `CUSTOM_MODEL_NAME` |
 
-可选模型覆盖：
+默认模型见[提供商密钥](#提供商密钥)表；如需覆盖模型，可追加 `MODEL_NAME` 环境变量，例如：
 
 - `MODEL_NAME=doubao-seed-1-6-flash-250828`
 - `MODEL_NAME=hunyuan-t1-vision-20250916`
 - `MODEL_NAME=HY-vision-1.5-instruct`
 
-#### Custom Provider（v1.5.0+）
-
-使用任意 OpenAI 兼容端点（OpenAI、OpenRouter、Together AI、Anthropic 代理、本地 vLLM/Ollama 等）：
-
-```bash
-claude mcp add -s user luma-mcp \
-  --env MODEL_PROVIDER=custom \
-  --env CUSTOM_API_KEY=sk-your-key \
-  --env CUSTOM_BASE_URL=https://your-endpoint.com/v1 \
-  --env CUSTOM_MODEL_NAME=your-model \
-  -- npx -y luma-mcp
-```
-
-可选配置（都有默认值）：
-
-- `CUSTOM_AUTH_HEADER=bearer` — `bearer` / `x-api-key` / `custom`
-- `CUSTOM_PATH=/chat/completions` — API 路径
-- `CUSTOM_TIMEOUT_MS=60000` — 超时毫秒
-- `CUSTOM_THINKING_MODE=disabled` — `disabled` / `openai` / `qwen_extra_body`
-- `CUSTOM_AUTH_HEADER_VALUE="X-API-Key: {{key}}"` — 自定义 Header 模板
-
-### 快捷配置命令
-
-#### Claude Code
+### Claude Code 快捷命令
 
 ```bash
 # Zhipu
@@ -112,14 +95,16 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE
 claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hunyuan-t1-vision-20250916 -- npx -y luma-mcp
 ```
 
-#### 本地开发模式
+### 本地开发模式
+
+指向本地 `build/index.js`（将 `<项目路径>` 替换为你本机的项目绝对路径）：
 
 ```json
 {
   "mcpServers": {
     "luma": {
       "command": "node",
-      "args": ["D:\\codes\\luma-mcp\\build\\index.js"],
+      "args": ["<项目路径>/build/index.js"],
       "env": {
         "MODEL_PROVIDER": "zhipu",
         "ZHIPU_API_KEY": "your-api-key"
@@ -129,38 +114,47 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_K
 }
 ```
 
-#### Cline / VSCode
+若 MCP 客户端支持设置工作目录，也可直接使用相对路径 `build/index.js` 并把 cwd 指向项目根目录。
 
-在项目根目录或 `.vscode/` 下创建 `mcp.json`：
+### Custom Provider（v1.5.0+）
 
-```json
-{
-  "mcpServers": {
-    "luma": {
-      "command": "npx",
-      "args": ["-y", "luma-mcp"],
-      "env": {
-        "MODEL_PROVIDER": "zhipu",
-        "ZHIPU_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
+使用任意 OpenAI 兼容端点（OpenAI、OpenRouter、Together AI、Anthropic 代理、本地 vLLM/Ollama 等）：
+
+```bash
+claude mcp add -s user luma-mcp \
+  --env MODEL_PROVIDER=custom \
+  --env CUSTOM_API_KEY=sk-your-key \
+  --env CUSTOM_BASE_URL=https://your-endpoint.com/v1 \
+  --env CUSTOM_MODEL_NAME=your-model \
+  -- npx -y luma-mcp
 ```
 
-## 使用方式
+可选配置（都有默认值）：
+
+- `CUSTOM_AUTH_HEADER=bearer` — `bearer` / `x-api-key` / `custom`
+- `CUSTOM_PATH=/chat/completions` — API 路径
+- `CUSTOM_TIMEOUT_MS=60000` — 超时毫秒
+- `CUSTOM_THINKING_MODE=disabled` — `disabled` / `openai` / `qwen_extra_body`
+- `CUSTOM_AUTH_HEADER_VALUE="X-API-Key: {{key}}"` — 自定义 Header 模板（`{{key}}` 会被替换为 API Key）
+
+## 使用
 
 ### `image_understand`
 
-仍为**单一工具**（兼容旧客户端）。参数：
+**单一工具**，参数：
 
-- `image_source`：本地路径、HTTP(S) 图片 URL、Data URI
-- `prompt`：用户对图片的原始问题
-- `task_type`（可选）：`auto` | `general` | `ocr` | `ui` | `debug` | `describe`  
-  - 省略或 `auto`：与旧版一致，按 prompt 启发式路由  
-  - `ocr`：文字提取，默认单图高保真（关闭 multi-crop）  
-  - `ui` / `debug`：界面结构 / 报错截图，倾向文本保真  
-  - `describe`：简短描述  
+| 参数 | 必填 | 说明 |
+| ---- | ---- | ---- |
+| `image_source` | 是 | 粘贴路径、本地文件路径、HTTP(S) 图片 URL 或 Data URI |
+| `prompt` | 是 | 用户对图片的原始问题，无需手写长分析模板 |
+| `task_type` | 否 | `auto` \| `general` \| `ocr` \| `ui` \| `debug` \| `describe` |
+
+`task_type` 行为：
+
+- 省略或 `auto`（默认）：与旧版一致，按 prompt 启发式路由
+- `ocr`：文字提取，默认单图高保真（关闭 multi-crop）
+- `ui` / `debug`：界面结构 / 报错截图，倾向文本保真
+- `describe`：简短描述
 
 示例：
 
@@ -194,14 +188,19 @@ image_understand({
 
 ### 通用配置
 
-| 变量名               | 默认值     | 说明                                                                |
-| -------------------- | ---------- | ------------------------------------------------------------------- |
-| `MODEL_PROVIDER`     | `zhipu`    | 模型提供商：`zhipu`、`siliconflow`、`qwen`、`volcengine`、`hunyuan`、`custom` |
-| `MODEL_NAME`         | 自动选择   | 模型名称                                                            |
-| `BASE_VISION_PROMPT` | 内置默认值 | 自定义基础视觉提示词                                                |
-| `MAX_TOKENS`         | `8192`     | 最大生成 token 数（部分模型有硬上限，详见下方说明）                 |
-| `INCLUDE_META`       | `false`    | 为 `true` 时在工具结果末尾附加预处理/API 耗时等 meta                |
-| `LUMA_DEBUG`         | 关闭       | `1`/`true` 时等同开启 `INCLUDE_META`                                |
+| 变量名 | 默认值 | 说明 |
+| ------ | ------ | ---- |
+| `MODEL_PROVIDER` | `zhipu` | 模型提供商：`zhipu`、`siliconflow`、`qwen`、`volcengine`、`hunyuan`、`custom` |
+| `MODEL_NAME` | 自动选择 | 模型名称覆盖 |
+| `MAX_TOKENS` | `8192` | 最大生成 token 数（部分模型有硬上限，见下方说明） |
+| `TEMPERATURE` | `0.7` | 采样温度 |
+| `TOP_P` | `0.95` | 核采样阈值 |
+| `ENABLE_THINKING` | `true` | 思考模式，设为 `false` 关闭 |
+| `MULTI_CROP` | `true` | 大图多裁剪，设为 `false` 关闭 |
+| `MULTI_CROP_MAX_TILES` | `5` | 多裁剪最大图块数（含原图，1–16） |
+| `BASE_VISION_PROMPT` | 内置默认值 | 自定义基础视觉提示词（设为空字符串可关闭） |
+| `INCLUDE_META` | `false` | 为 `true` 时在工具结果末尾附加预处理/API 耗时等 meta |
+| `LUMA_DEBUG` | 关闭 | `1`/`true` 时等同开启 `INCLUDE_META` |
 
 > [!IMPORTANT]
 > **关于 Token 限制的特别说明：**
@@ -211,19 +210,31 @@ image_understand({
 
 ### 提供商密钥
 
-| 提供商      | 必填环境变量          | 默认模型                       |
-| ----------- | --------------------- | ------------------------------ |
-| Zhipu       | `ZHIPU_API_KEY`       | `glm-4.6v`                     |
-| SiliconFlow | `SILICONFLOW_API_KEY` | `deepseek-ai/DeepSeek-OCR`     |
-| Qwen        | `DASHSCOPE_API_KEY`   | `qwen3-vl-flash`               |
-| Volcengine  | `VOLCENGINE_API_KEY`  | `doubao-seed-1-6-flash-250828` |
-| Hunyuan     | `HUNYUAN_API_KEY`     | `hunyuan-t1-vision-20250916`   |
+| 提供商 | 必填环境变量 | 默认模型 |
+| ------ | ------------ | -------- |
+| Zhipu | `ZHIPU_API_KEY` | `glm-4.6v` |
+| SiliconFlow | `SILICONFLOW_API_KEY` | `deepseek-ai/DeepSeek-OCR` |
+| Qwen | `DASHSCOPE_API_KEY` | `qwen3-vl-flash` |
+| Volcengine | `VOLCENGINE_API_KEY` | `doubao-seed-1-6-flash-250828` |
+| Hunyuan | `HUNYUAN_API_KEY` | `hunyuan-t1-vision-20250916` |
+
+## 图片限制与处理
+
+- 支持格式：JPG、PNG、WebP、GIF
+- 最大输入大小：10MB（本地文件、远程 URL、Data URI 一致）
+- 超过 2MB 的图片会自动压缩
+- 最大分辨率：1600 万像素（超出将报错）
+- 远程 URL 会先拉取到统一预处理链路再发送给模型，并带 SSRF 防护（拒绝内网/私网地址、禁用重定向）
+- 长边 ≥ 1800px 或 ≥ 350 万像素的大图，自动生成原图 + 有序裁剪图（受 `MULTI_CROP` / `MULTI_CROP_MAX_TILES` 控制）
 
 ## 本地测试
 
 ```bash
 # 单元测试（不调用真实 API）
 npm run test:unit
+
+# MCP stdio 端到端测试（真实调用 image_understand）
+npm run test:mcp
 
 # 基础测试
 npm run test:local ./test.png
@@ -238,52 +249,50 @@ npm run test:local https://example.com/image.jpg
 npm run typecheck
 ```
 
-## 图片与处理限制
-
-- 支持格式：JPG、PNG、WebP、GIF
-- 最大输入大小：10MB
-- 超过 2MB 的图片会自动压缩
-- 远程 URL 会先拉取到统一预处理链路，再发送给模型
-
-## 项目结构
-
-```text
-luma-mcp/
-├── src/
-│   ├── index.ts                      # MCP 服务器入口
-│   ├── config.ts                     # 配置管理
-│   ├── task-types.ts                 # 可选 task_type 路由
-│   ├── vision-client.ts              # 视觉模型客户端接口
-│   ├── openai-compatible-client.ts   # OpenAI 兼容基类
-│   ├── zhipu-client.ts               # GLM 客户端
-│   ├── siliconflow-client.ts         # DeepSeek-OCR 客户端
-│   ├── qwen-client.ts                # Qwen VL 客户端
-│   ├── volcengine-client.ts          # Doubao 客户端
-│   ├── hunyuan-client.ts             # Hunyuan 客户端
-│   ├── custom-client.ts              # 任意 OpenAI 兼容端点
-│   ├── image-processor.ts            # 图片预处理与裁剪
-│   └── utils/
-│       ├── helpers.ts
-│       └── logger.ts
-├── test/
-│   ├── test-local.ts
-│   ├── test-qwen.ts
-│   ├── test-deepseek-raw.ts
-│   └── test-data-uri.ts
-├── docs/
-│   └── README_EN.md
-├── build/
-├── package.json
-└── tsconfig.json
-```
-
 ## 模型选择建议
 
 - OCR、文字识别：DeepSeek-OCR
 - 快速低成本通用分析：Qwen3-VL-Flash
 - 高性价比通用分析：Doubao-Seed-1.6
 - 深度图片理解：GLM-4.6V
-- 复杂图文推理、多语言：Hunyuan-Vision-1.5
+- 复杂图文推理、多语言：Hunyuan-Vision
+
+## 项目结构
+
+```text
+luma-mcp/
+├── src/
+│   ├── index.ts                      # MCP 服务器入口，注册 image_understand
+│   ├── config.ts                     # 环境变量加载与校验
+│   ├── constants.ts                  # 默认视觉提示词等常量
+│   ├── task-types.ts                 # 可选 task_type 路由
+│   ├── vision-client.ts              # 视觉模型客户端接口
+│   ├── openai-compatible-client.ts   # OpenAI 兼容请求基类
+│   ├── zhipu-client.ts               # GLM-4.6V 客户端
+│   ├── siliconflow-client.ts         # DeepSeek-OCR 客户端
+│   ├── qwen-client.ts                # Qwen3-VL 客户端
+│   ├── volcengine-client.ts          # Doubao-Seed-1.6 客户端
+│   ├── hunyuan-client.ts             # Hunyuan-Vision 客户端
+│   ├── custom-client.ts              # 任意 OpenAI 兼容端点
+│   ├── image-processor.ts            # 图片预处理、压缩、多裁剪
+│   └── utils/
+│       ├── helpers.ts                # 重试、响应格式化、错误脱敏
+│       └── logger.ts                 # 日志
+├── test/
+│   ├── test-local.ts                 # 本地单图/多图测试
+│   ├── test-qwen.ts                  # Qwen 客户端测试
+│   ├── test-deepseek-raw.ts          # DeepSeek-OCR 原始调用测试
+│   ├── test-data-uri.ts              # Data URI 处理测试
+│   ├── test-custom.ts                # CustomClient 单元测试
+│   ├── test-task-types.ts            # task_type 路由测试
+│   ├── test-mcp-stdio.ts             # MCP stdio 端到端测试
+│   └── image-processor-regression.ts # 图片处理回归测试
+├── docs/
+│   └── README_EN.md
+├── build/                            # 编译产物
+├── package.json
+└── tsconfig.json
+```
 
 ## 开发
 

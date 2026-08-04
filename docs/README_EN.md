@@ -6,13 +6,13 @@ English | [中文](../README.md)
 
 ## Features
 
-- Multi-model support: GLM-4.6V, DeepSeek-OCR, Qwen3-VL-Flash, Doubao-Seed-1.6, and Hunyuan-Vision-1.5
-- Single-tool surface: everything goes through `image_understand`
-- Better handling for difficult screenshots: multi-crop support for large images and detail-preserving processing for text-heavy inputs
-- Unified preprocessing pipeline for local files, remote URLs, and Data URIs
-- Works well for code screenshots, UI screenshots, error screens, documents, and OCR
-- Standard MCP integration for Claude Desktop, Cline, Claude Code, and similar clients
-- Built-in retry for transient request failures
+- **Multi-model support**: GLM-4.6V, DeepSeek-OCR, Qwen3-VL-Flash, Doubao-Seed-1.6, and Hunyuan-Vision
+- **Single-tool surface**: everything goes through `image_understand`, backward compatible
+- **Better handling for difficult screenshots**: multi-crop for large images and detail-preserving processing for text-heavy inputs
+- **Unified preprocessing pipeline** for local files, remote URLs, and Data URIs
+- **Works well for** code screenshots, UI screenshots, error screens, documents, and OCR
+- **Standard MCP integration** for Claude Desktop, Cline, Claude Code, and similar clients
+- **Built-in retry** for transient request failures
 
 ## Quick Start
 
@@ -23,6 +23,14 @@ English | [中文](../README.md)
 
 ### Install
 
+Run directly via `npx` (no local install needed):
+
+```bash
+npx -y luma-mcp
+```
+
+Or build from source:
+
 ```bash
 git clone https://github.com/JochenYang/luma-mcp.git
 cd luma-mcp
@@ -30,15 +38,11 @@ npm install
 npm run build
 ```
 
-Or run directly from MCP config:
-
-```bash
-npx -y luma-mcp
-```
-
 ## Configuration
 
-### Claude Desktop example
+### Basic setup (npx)
+
+Register in your MCP client's `mcpServers` (works for Claude Desktop, Cline / VSCode):
 
 ```json
 {
@@ -55,45 +59,24 @@ npx -y luma-mcp
 }
 ```
 
-Replace `MODEL_PROVIDER` and its matching key with the provider you want:
+Replace `MODEL_PROVIDER` and the matching key with the provider you want:
 
-- `zhipu` -> `ZHIPU_API_KEY`
-- `siliconflow` -> `SILICONFLOW_API_KEY`
-- `qwen` -> `DASHSCOPE_API_KEY`
-- `volcengine` -> `VOLCENGINE_API_KEY`
-- `hunyuan` -> `HUNYUAN_API_KEY`
-- `custom` -> `CUSTOM_API_KEY` + `CUSTOM_BASE_URL` + `CUSTOM_MODEL_NAME` (any OpenAI-compatible endpoint)
+| `MODEL_PROVIDER` | API key env var |
+| ---------------- | --------------- |
+| `zhipu` | `ZHIPU_API_KEY` |
+| `siliconflow` | `SILICONFLOW_API_KEY` |
+| `qwen` | `DASHSCOPE_API_KEY` |
+| `volcengine` | `VOLCENGINE_API_KEY` |
+| `hunyuan` | `HUNYUAN_API_KEY` |
+| `custom` | `CUSTOM_API_KEY` + `CUSTOM_BASE_URL` + `CUSTOM_MODEL_NAME` |
 
-Optional model override:
+Default models are listed in the [Provider Keys](#provider-keys) table. To override the model, add the `MODEL_NAME` env var, e.g.:
 
 - `MODEL_NAME=doubao-seed-1-6-flash-250828`
 - `MODEL_NAME=hunyuan-t1-vision-20250916`
 - `MODEL_NAME=HY-vision-1.5-instruct`
 
-#### Custom Provider (v1.5.0+)
-
-Use any OpenAI-compatible endpoint (OpenAI, OpenRouter, Together AI, Anthropic proxy, local vLLM/Ollama, etc.):
-
-```bash
-claude mcp add -s user luma-mcp \
-  --env MODEL_PROVIDER=custom \
-  --env CUSTOM_API_KEY=sk-your-key \
-  --env CUSTOM_BASE_URL=https://your-endpoint.com/v1 \
-  --env CUSTOM_MODEL_NAME=your-model \
-  -- npx -y luma-mcp
-```
-
-Optional config (all have defaults):
-
-- `CUSTOM_AUTH_HEADER=bearer` — `bearer` / `x-api-key` / `custom`
-- `CUSTOM_PATH=/chat/completions` — API path
-- `CUSTOM_TIMEOUT_MS=60000` — timeout in ms
-- `CUSTOM_THINKING_MODE=disabled` — `disabled` / `openai` / `qwen_extra_body`
-- `CUSTOM_AUTH_HEADER_VALUE="X-API-Key: {{key}}"` — custom header template
-
-### Quick Setup Commands
-
-#### Claude Code
+### Claude Code quick commands
 
 ```bash
 # Zhipu
@@ -112,14 +95,16 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE
 claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hunyuan-t1-vision-20250916 -- npx -y luma-mcp
 ```
 
-#### Local Development Mode
+### Local development mode
+
+Point to the local `build/index.js` (replace `<project-path>` with your absolute project path):
 
 ```json
 {
   "mcpServers": {
     "luma": {
       "command": "node",
-      "args": ["D:\\codes\\luma-mcp\\build\\index.js"],
+      "args": ["<project-path>/build/index.js"],
       "env": {
         "MODEL_PROVIDER": "zhipu",
         "ZHIPU_API_KEY": "your-api-key"
@@ -129,33 +114,47 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_K
 }
 ```
 
-#### Cline / VSCode
+If your MCP client supports a working directory, you can also use the relative path `build/index.js` with cwd set to the project root.
 
-Create `mcp.json` in the project root or under `.vscode/`:
+### Custom Provider (v1.5.0+)
 
-```json
-{
-  "mcpServers": {
-    "luma": {
-      "command": "npx",
-      "args": ["-y", "luma-mcp"],
-      "env": {
-        "MODEL_PROVIDER": "zhipu",
-        "ZHIPU_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
+Use any OpenAI-compatible endpoint (OpenAI, OpenRouter, Together AI, Anthropic proxy, local vLLM/Ollama, etc.):
+
+```bash
+claude mcp add -s user luma-mcp \
+  --env MODEL_PROVIDER=custom \
+  --env CUSTOM_API_KEY=sk-your-key \
+  --env CUSTOM_BASE_URL=https://your-endpoint.com/v1 \
+  --env CUSTOM_MODEL_NAME=your-model \
+  -- npx -y luma-mcp
 ```
+
+Optional config (all have defaults):
+
+- `CUSTOM_AUTH_HEADER=bearer` — `bearer` / `x-api-key` / `custom`
+- `CUSTOM_PATH=/chat/completions` — API path
+- `CUSTOM_TIMEOUT_MS=60000` — timeout in ms
+- `CUSTOM_THINKING_MODE=disabled` — `disabled` / `openai` / `qwen_extra_body`
+- `CUSTOM_AUTH_HEADER_VALUE="X-API-Key: {{key}}"` — custom header template (`{{key}}` is replaced with the API key)
 
 ## Usage
 
 ### `image_understand`
 
-Parameters:
+**Single tool** with these parameters:
 
-- `image_source`: local path, HTTP(S) image URL, or Data URI
-- `prompt`: the user's original question about the image
+| Parameter | Required | Description |
+| --------- | -------- | ----------- |
+| `image_source` | Yes | Pasted path, local file path, HTTP(S) image URL, or Data URI |
+| `prompt` | Yes | The user's original question about the image; no long template needed |
+| `task_type` | No | `auto` \| `general` \| `ocr` \| `ui` \| `debug` \| `describe` |
+
+`task_type` behavior:
+
+- Omitted or `auto` (default): matches pre-1.6 behavior, routed heuristically by prompt
+- `ocr`: text extraction, single high-fidelity image by default (multi-crop disabled)
+- `ui` / `debug`: UI structure / error screenshot, prefers text fidelity
+- `describe`: concise description
 
 Example:
 
@@ -163,11 +162,13 @@ Example:
 image_understand({
   image_source: "./screenshot.png",
   prompt: "Analyze the layout and main component structure of this page",
+  task_type: "ui",
 });
 
 image_understand({
   image_source: "./code-error.png",
   prompt: "Why is this code failing? Suggest a fix",
+  // task_type can be omitted; behavior matches pre-1.6
 });
 
 image_understand({
@@ -180,7 +181,8 @@ image_understand({
 
 - Non-vision models usually need an explicit instruction to call the MCP tool
 - Text-heavy screenshots such as OCR images, code, tables, and long documents use a more detail-preserving preprocessing path
-- Large images can be expanded into an original image plus cropped tiles before being sent to the model
+- Large images are expanded into an original image plus ordered crops before being sent to the model
+- For timing/tile-count debugging, set `INCLUDE_META=true` or `LUMA_DEBUG=1` to append `luma_meta` to the result
 
 ## Environment Variables
 
@@ -188,15 +190,17 @@ image_understand({
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MODEL_PROVIDER` | `zhipu` | Provider: `zhipu`, `siliconflow`, `qwen`, `volcengine`, `hunyuan` |
+| `MODEL_PROVIDER` | `zhipu` | Provider: `zhipu`, `siliconflow`, `qwen`, `volcengine`, `hunyuan`, `custom` |
 | `MODEL_NAME` | auto-selected | Model name override |
 | `MAX_TOKENS` | `8192` | Max generated tokens (some models have hard caps, see below) |
-| `TEMPERATURE` | `0.7` | Temperature |
-| `TOP_P` | `0.7` | Top-p |
-| `ENABLE_THINKING` | `true` | Enable thinking mode where supported |
-| `MULTI_CROP` | `true` | Enable multi-crop analysis for large images |
-| `MULTI_CROP_MAX_TILES` | `5` | Max number of tiles including the original image |
-| `BASE_VISION_PROMPT` | built-in default | Override the base vision prompt |
+| `TEMPERATURE` | `0.7` | Sampling temperature |
+| `TOP_P` | `0.95` | Nucleus sampling threshold |
+| `ENABLE_THINKING` | `true` | Thinking mode; set `false` to disable |
+| `MULTI_CROP` | `true` | Multi-crop for large images; set `false` to disable |
+| `MULTI_CROP_MAX_TILES` | `5` | Max tiles including the original image (1–16) |
+| `BASE_VISION_PROMPT` | built-in default | Override the base vision prompt (empty string disables it) |
+| `INCLUDE_META` | `false` | Append preprocess/API timing metadata to tool results when `true` |
+| `LUMA_DEBUG` | off | `1`/`true` is equivalent to enabling `INCLUDE_META` |
 
 > [!IMPORTANT]
 > **Special Note on Token Limits:**
@@ -213,9 +217,24 @@ image_understand({
 | Volcengine | `VOLCENGINE_API_KEY` | `doubao-seed-1-6-flash-250828` |
 | Hunyuan | `HUNYUAN_API_KEY` | `hunyuan-t1-vision-20250916` |
 
+## Image Limits and Processing
+
+- Supported formats: JPG, PNG, WebP, GIF
+- Maximum input size: 10MB (same for local files, remote URLs, and Data URIs)
+- Images larger than 2MB are compressed automatically
+- Maximum resolution: 16 megapixels (exceeding it returns an error)
+- Remote URLs are fetched into the same preprocessing pipeline and carry SSRF protection (private/internal addresses rejected, redirects disabled)
+- Images with a long side ≥ 1800px or ≥ 3.5M pixels are expanded into an original image plus ordered crops (controlled by `MULTI_CROP` / `MULTI_CROP_MAX_TILES`)
+
 ## Local Testing
 
 ```bash
+# Unit tests (no real API calls)
+npm run test:unit
+
+# MCP stdio end-to-end test (real image_understand call)
+npm run test:mcp
+
 # Basic test
 npm run test:local ./test.png
 
@@ -229,49 +248,50 @@ npm run test:local https://example.com/image.jpg
 npm run typecheck
 ```
 
-## Image Limits and Processing
-
-- Supported formats: JPG, PNG, WebP, GIF
-- Maximum input size: 10MB
-- Images larger than 2MB are compressed automatically
-- Remote URLs are fetched into the same preprocessing pipeline before being sent to the model
-
-## Project Structure
-
-```text
-luma-mcp/
-├── src/
-│   ├── index.ts              # MCP server entry
-│   ├── config.ts             # Configuration management
-│   ├── vision-client.ts      # Shared vision client interface
-│   ├── zhipu-client.ts       # GLM-4.6V client
-│   ├── siliconflow-client.ts # DeepSeek-OCR client
-│   ├── qwen-client.ts        # Qwen3-VL client
-│   ├── volcengine-client.ts  # Doubao-Seed-1.6 client
-│   ├── hunyuan-client.ts     # Hunyuan-Vision-1.5 client
-│   ├── image-processor.ts    # Image preprocessing and tiling
-│   └── utils/
-│       ├── helpers.ts
-│       └── logger.ts
-├── test/
-│   ├── test-local.ts
-│   ├── test-qwen.ts
-│   ├── test-deepseek-raw.ts
-│   └── test-data-uri.ts
-├── docs/
-│   └── README_EN.md
-├── build/
-├── package.json
-└── tsconfig.json
-```
-
 ## Model Selection
 
 - OCR and text extraction: DeepSeek-OCR
 - Fast low-cost general analysis: Qwen3-VL-Flash
 - Cost-effective general analysis: Doubao-Seed-1.6
 - Deep image understanding: GLM-4.6V
-- Complex multimodal reasoning and multilingual tasks: Hunyuan-Vision-1.5
+- Complex multimodal reasoning and multilingual tasks: Hunyuan-Vision
+
+## Project Structure
+
+```text
+luma-mcp/
+├── src/
+│   ├── index.ts                      # MCP server entry, registers image_understand
+│   ├── config.ts                     # Env var loading and validation
+│   ├── constants.ts                  # Default vision prompt and shared constants
+│   ├── task-types.ts                 # Optional task_type routing
+│   ├── vision-client.ts              # Shared vision client interface
+│   ├── openai-compatible-client.ts   # OpenAI-compatible request base class
+│   ├── zhipu-client.ts               # GLM-4.6V client
+│   ├── siliconflow-client.ts         # DeepSeek-OCR client
+│   ├── qwen-client.ts                # Qwen3-VL client
+│   ├── volcengine-client.ts          # Doubao-Seed-1.6 client
+│   ├── hunyuan-client.ts             # Hunyuan-Vision client
+│   ├── custom-client.ts              # Any OpenAI-compatible endpoint
+│   ├── image-processor.ts            # Image preprocessing, compression, tiling
+│   └── utils/
+│       ├── helpers.ts                # Retry, response formatting, error sanitization
+│       └── logger.ts                 # Logging
+├── test/
+│   ├── test-local.ts                 # Local single/multi-image tests
+│   ├── test-qwen.ts                  # Qwen client tests
+│   ├── test-deepseek-raw.ts          # DeepSeek-OCR raw call tests
+│   ├── test-data-uri.ts              # Data URI processing tests
+│   ├── test-custom.ts                # CustomClient unit tests
+│   ├── test-task-types.ts            # task_type routing tests
+│   ├── test-mcp-stdio.ts             # MCP stdio end-to-end test
+│   └── image-processor-regression.ts # Image processing regression tests
+├── docs/
+│   └── README_EN.md
+├── build/                            # Compiled output
+├── package.json
+└── tsconfig.json
+```
 
 ## Development
 
