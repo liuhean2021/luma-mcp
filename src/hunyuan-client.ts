@@ -18,7 +18,6 @@ export class HunyuanClient extends OpenAICompatibleVisionClient {
       },
       thinkingMode: "enable_thinking_field",
       includeTopP: true,
-      enableThinkingFieldWhen: "always_if_defined",
     });
   }
 }

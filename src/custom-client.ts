@@ -4,22 +4,7 @@
  */
 
 import type { LumaConfig } from "./config.js";
-import {
-  OpenAICompatibleVisionClient,
-  type ThinkingMode,
-} from "./openai-compatible-client.js";
-
-function mapCustomThinkingMode(
-  mode: "disabled" | "openai" | "qwen_extra_body"
-): ThinkingMode {
-  if (mode === "openai") {
-    return "enable_thinking_field";
-  }
-  if (mode === "qwen_extra_body") {
-    return "qwen_extra_body";
-  }
-  return "none";
-}
+import { OpenAICompatibleVisionClient } from "./openai-compatible-client.js";
 
 function buildAuthHeaders(
   apiKey: string,
@@ -50,7 +35,6 @@ function buildAuthHeaders(
 
 export class CustomClient extends OpenAICompatibleVisionClient {
   private customThinkingMode: "disabled" | "openai" | "qwen_extra_body";
-  private customModelName: string;
 
   constructor(config: LumaConfig) {
     if (!config.customProvider) {
@@ -60,7 +44,6 @@ export class CustomClient extends OpenAICompatibleVisionClient {
     }
 
     const cfg = config.customProvider;
-    const thinkingMode = mapCustomThinkingMode(cfg.thinkingMode);
 
     // Prefer CUSTOM_MODEL_NAME for request body (legacy: customProvider.model)
     const configWithModel: LumaConfig = {
@@ -74,17 +57,15 @@ export class CustomClient extends OpenAICompatibleVisionClient {
       path: cfg.path || "/chat/completions",
       timeoutMs: cfg.timeoutMs,
       headers: buildAuthHeaders(cfg.apiKey, cfg.authHeader, cfg.authHeaderValue),
-      thinkingMode,
       includeTopP: true,
       includeStreamFalse: true,
     });
 
     this.customThinkingMode = cfg.thinkingMode;
-    this.customModelName = cfg.model;
   }
 
   override getModelName(): string {
-    return `Custom (${this.customModelName})`;
+    return `Custom (${this.model})`;
   }
 
   /**

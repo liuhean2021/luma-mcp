@@ -32,8 +32,6 @@ export interface OpenAICompatibleClientOptions {
   includeTopP?: boolean;
   /** Always send stream: false */
   includeStreamFalse?: boolean;
-  /** How enableThinking maps when thinkingMode is enable_thinking_field */
-  enableThinkingFieldWhen?: "always_if_defined" | "when_true";
 }
 
 interface ChatCompletionResponse {
@@ -63,7 +61,6 @@ export class OpenAICompatibleVisionClient implements VisionClient {
       | "thinkingMode"
       | "includeTopP"
       | "includeStreamFalse"
-      | "enableThinkingFieldWhen"
     >
   > &
     OpenAICompatibleClientOptions;
@@ -78,7 +75,6 @@ export class OpenAICompatibleVisionClient implements VisionClient {
       thinkingMode: "none",
       includeTopP: false,
       includeStreamFalse: false,
-      enableThinkingFieldWhen: "always_if_defined",
       ...options,
     };
 
@@ -165,14 +161,8 @@ export class OpenAICompatibleVisionClient implements VisionClient {
       return;
     }
 
-    if (mode === "enable_thinking_field") {
-      if (this.options.enableThinkingFieldWhen === "when_true") {
-        if (enableThinking) {
-          body.enable_thinking = true;
-        }
-      } else if (enableThinking !== undefined) {
-        body.enable_thinking = enableThinking;
-      }
+    if (mode === "enable_thinking_field" && enableThinking !== undefined) {
+      body.enable_thinking = enableThinking;
     }
   }
 

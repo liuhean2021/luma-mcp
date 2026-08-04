@@ -455,10 +455,6 @@ class LRUCache<K, V> {
     }
     this.cache.set(key, value);
   }
-
-  clear(): void {
-    this.cache.clear();
-  }
 }
 
 /**

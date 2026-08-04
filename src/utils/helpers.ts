@@ -8,12 +8,12 @@ import axios from "axios";
  * - 4xx 客户端错误直接抛出，不重试
  * - 其他错误使用带随机抖动的指数退避重试
  */
-export function withRetry<T>(
-  fn: (...args: any[]) => Promise<T>,
+export function withRetry<T, P extends unknown[]>(
+  fn: (...args: P) => Promise<T>,
   maxRetries: number = 2,
   initialDelay: number = 1000
-): (...args: any[]) => Promise<T> {
-  return async (...args: any[]): Promise<T> => {
+): (...args: P) => Promise<T> {
+  return async (...args: P): Promise<T> => {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn(...args);
