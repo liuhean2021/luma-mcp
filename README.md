@@ -39,6 +39,22 @@ npm install
 npm run build
 ```
 
+## 不使用 MCP？Luma Vision Skill（轻量替代）
+
+不想安装 MCP 服务器，或你使用的 AI 客户端（如 Kimi Code）支持 skill 而不支持 MCP？可直接使用仓库内的 `vision-skill/`：
+
+- **安装**：把 `vision-skill/` 目录复制到你所用 agent 的 skills 目录（如 `~/.agents/skills/vision-skill`）
+- **激活**：发送图片时以 `/skill luma-vision` 开头，skill 会执行 `scripts/vision.js` 直连视觉模型 API 完成分析
+- **配置**：在系统环境变量中设置（与 MCP 版 `custom` provider 共用同一组变量）：
+
+| 变量 | 说明 |
+| ---- | ---- |
+| `CUSTOM_BASE_URL` | OpenAI 兼容 API 地址（默认 `https://api.minimaxi.com/v1`） |
+| `CUSTOM_MODEL_NAME` | 模型名称（默认 `MiniMax-M3`） |
+| `CUSTOM_API_KEY` | API Key |
+
+**与 MCP 版的差异**：skill 是零依赖轻量脚本，只做"单图直连"——支持本地路径、HTTP(S) URL、Data URI，图片参数留空时自动扫描常见缓存目录找最新图片；但不包含 MCP 版的多裁剪、压缩、重试、SSRF 防护等能力。
+
 ## 配置
 
 ### 基础配置（npx 方式）
@@ -73,9 +89,11 @@ npm run build
 
 默认模型见[提供商密钥](#提供商密钥)表；如需覆盖模型，可追加 `MODEL_NAME` 环境变量，例如：
 
-- `MODEL_NAME=doubao-seed-1-6-flash-250828`
-- `MODEL_NAME=hunyuan-t1-vision-20250916`
-- `MODEL_NAME=HY-vision-1.5-instruct`
+- `MODEL_NAME=doubao-seed-1-6-vision-250815`（Volcengine 视觉深度思考模型）
+- `MODEL_NAME=hy-vision-2.0-instruct`（Hunyuan，腾讯云 TokenHub）
+
+> [!NOTE]
+> **混元模型已迁移**：腾讯混元平台的旧视觉模型（`hunyuan-t1-vision-20250916`、`Tencent HY Vision 1.5 Instruct` 等）已于 2026-06-22 下线，新模型（HY-Vision 2.0 等）迁移至[腾讯云 TokenHub](https://cloud.tencent.com/product/tokenhub)。luma 的 `hunyuan` provider 默认端点仍指向旧平台；改用 TokenHub 新模型时，建议以 `custom` provider 接入，将 `CUSTOM_BASE_URL` 设为 `https://tokenhub.tencentmaas.com/v1`。
 
 ### Claude Code 快捷命令
 
@@ -90,10 +108,10 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=siliconflow --env SILICONFL
 claude mcp add -s user luma-mcp --env MODEL_PROVIDER=qwen --env DASHSCOPE_API_KEY=your-api-key -- npx -y luma-mcp
 
 # Volcengine
-claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE_API_KEY=your-api-key --env MODEL_NAME=doubao-seed-1-6-flash-250828 -- npx -y luma-mcp
+claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE_API_KEY=your-api-key --env MODEL_NAME=doubao-seed-1-6-vision-250815 -- npx -y luma-mcp
 
-# Hunyuan
-claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hunyuan-t1-vision-20250916 -- npx -y luma-mcp
+# Hunyuan（新模型在腾讯云 TokenHub，旧混元平台模型已下线）
+claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hy-vision-2.0-instruct -- npx -y luma-mcp
 ```
 
 ### 本地开发模式
@@ -304,7 +322,7 @@ npm run typecheck
 - 快速低成本通用分析：Qwen3-VL-Flash
 - 高性价比通用分析：Doubao-Seed-1.6
 - 深度图片理解：GLM-4.6V
-- 复杂图文推理、多语言：Hunyuan-Vision
+- 复杂图文推理、多语言：Hunyuan-Vision（新模型为混元 HY-Vision，见腾讯云 TokenHub）
 
 ## 项目结构
 
@@ -339,6 +357,9 @@ luma-mcp/
 │   ├── test-mcp-http.ts              # MCP HTTP 传输测试（无需 API key）
 │   └── image-processor-regression.ts # 图片处理回归测试
 ├── Dockerfile                        # HTTP 模式容器化部署
+├── vision-skill/                     # 轻量识图 skill（无 MCP 用户的替代方案）
+│   ├── SKILL.md                      # skill 定义：/skill luma-vision 激活
+│   └── scripts/vision.js             # 零依赖识图脚本，直连视觉模型 API
 ├── docs/
 │   └── README_EN.md
 ├── build/                            # 编译产物

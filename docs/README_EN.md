@@ -39,6 +39,22 @@ npm install
 npm run build
 ```
 
+## Not Using MCP? Try the Luma Vision Skill (lightweight alternative)
+
+Don't want to install an MCP server, or your AI client (e.g. Kimi Code) supports skills but not MCP? Use the `vision-skill/` directory in this repo directly:
+
+- **Install**: copy the `vision-skill/` directory into your agent's skills directory (e.g. `~/.agents/skills/vision-skill`)
+- **Activate**: start your message with `/skill luma-vision` together with an image; the skill runs `scripts/vision.js` which calls the vision model API directly
+- **Configure**: set these system environment variables (shared with the MCP `custom` provider):
+
+| Variable | Description |
+| -------- | ----------- |
+| `CUSTOM_BASE_URL` | OpenAI-compatible API URL (default `https://api.minimaxi.com/v1`) |
+| `CUSTOM_MODEL_NAME` | Model name (default `MiniMax-M3`) |
+| `CUSTOM_API_KEY` | API key |
+
+**Differences from the MCP version**: the skill is a zero-dependency script for single-image calls — it supports local paths, HTTP(S) URLs, and Data URIs, and auto-scans common cache directories for the latest image when the source is omitted; it does not include multi-crop, compression, retry, or SSRF protection.
+
 ## Configuration
 
 ### Basic setup (npx)
@@ -73,9 +89,11 @@ Replace `MODEL_PROVIDER` and the matching key with the provider you want:
 
 Default models are listed in the [Provider Keys](#provider-keys) table. To override the model, add the `MODEL_NAME` env var, e.g.:
 
-- `MODEL_NAME=doubao-seed-1-6-flash-250828`
-- `MODEL_NAME=hunyuan-t1-vision-20250916`
-- `MODEL_NAME=HY-vision-1.5-instruct`
+- `MODEL_NAME=doubao-seed-1-6-vision-250815` (Volcengine deep-thinking vision model)
+- `MODEL_NAME=hy-vision-2.0-instruct` (Hunyuan, Tencent Cloud TokenHub)
+
+> [!NOTE]
+> **Hunyuan models migrated**: the old Tencent Hunyuan platform vision models (`hunyuan-t1-vision-20250916`, `Tencent HY Vision 1.5 Instruct`, etc.) were retired on 2026-06-22; the new models (HY-Vision 2.0, etc.) live on [Tencent Cloud TokenHub](https://cloud.tencent.com/product/tokenhub). The `hunyuan` provider in luma still defaults to the old endpoint; to use TokenHub models, connect via the `custom` provider with `CUSTOM_BASE_URL=https://tokenhub.tencentmaas.com/v1`.
 
 ### Claude Code quick commands
 
@@ -90,10 +108,10 @@ claude mcp add -s user luma-mcp --env MODEL_PROVIDER=siliconflow --env SILICONFL
 claude mcp add -s user luma-mcp --env MODEL_PROVIDER=qwen --env DASHSCOPE_API_KEY=your-api-key -- npx -y luma-mcp
 
 # Volcengine
-claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE_API_KEY=your-api-key --env MODEL_NAME=doubao-seed-1-6-flash-250828 -- npx -y luma-mcp
+claude mcp add -s user luma-mcp --env MODEL_PROVIDER=volcengine --env VOLCENGINE_API_KEY=your-api-key --env MODEL_NAME=doubao-seed-1-6-vision-250815 -- npx -y luma-mcp
 
-# Hunyuan
-claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hunyuan-t1-vision-20250916 -- npx -y luma-mcp
+# Hunyuan (new models on Tencent Cloud TokenHub; old platform models retired)
+claude mcp add -s user luma-mcp --env MODEL_PROVIDER=hunyuan --env HUNYUAN_API_KEY=your-api-key --env MODEL_NAME=hy-vision-2.0-instruct -- npx -y luma-mcp
 ```
 
 ### Local development mode
@@ -303,7 +321,7 @@ npm run typecheck
 - Fast low-cost general analysis: Qwen3-VL-Flash
 - Cost-effective general analysis: Doubao-Seed-1.6
 - Deep image understanding: GLM-4.6V
-- Complex multimodal reasoning and multilingual tasks: Hunyuan-Vision
+- Complex multimodal reasoning and multilingual tasks: Hunyuan-Vision (new models are Hunyuan HY-Vision on Tencent Cloud TokenHub)
 
 ## Project Structure
 
@@ -338,6 +356,9 @@ luma-mcp/
 │   ├── test-mcp-http.ts              # MCP HTTP transport test (no API key)
 │   └── image-processor-regression.ts # Image processing regression tests
 ├── Dockerfile                        # Containerized deployment for HTTP mode
+├── vision-skill/                     # Lightweight vision skill (no-MCP alternative)
+│   ├── SKILL.md                      # Skill definition: activated via /skill luma-vision
+│   └── scripts/vision.js             # Zero-dependency script calling the vision model API
 ├── docs/
 │   └── README_EN.md
 ├── build/                            # Compiled output
