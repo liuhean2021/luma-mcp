@@ -13,8 +13,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { startHttpServer } from "./http-server.js";
 import { z } from "zod";
-import { readFileSync } from "fs";
-import { dirname, join, resolve } from "path";
+import { readFileSync, realpathSync } from "fs";
+import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
 import {
@@ -358,11 +358,14 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-// 仅在直接执行时启动（测试 import 本模块时跳过）
+// 仅在直接执行时启动（测试 import 本模块时跳过）。
+// 必须用 realpathSync 而非 resolve：npx 通过 node_modules/.bin 符号链接启动入口，
+// 此时 process.argv[1] 是链接路径，而 import.meta.url 已被 ESM loader 解析为真实路径，
+// 纯字符串比较恒不相等，会导致 main() 永不执行（进程静默退出）。
 const isMainModule =
   process.argv[1] !== undefined &&
-  resolve(process.argv[1]).toLowerCase() ===
-    fileURLToPath(import.meta.url).toLowerCase();
+  realpathSync(process.argv[1]).toLowerCase() ===
+    realpathSync(fileURLToPath(import.meta.url)).toLowerCase();
 
 if (isMainModule) {
   main();

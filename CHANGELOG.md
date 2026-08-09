@@ -2,6 +2,17 @@
 
 本项目的所有重大变更都将记录在此文件中。
 
+## [1.7.1] - 2026-08-09
+
+### Fixed
+
+- 🐛 **npx 启动静默退出（#7）**: 入口守卫改用 `realpathSync` 比较，修复经 `npx`（`node_modules/.bin` 符号链接）启动时 `main()` 永不执行、进程 exit 0 且无日志的问题；直接启动与测试 import 场景行为不变
+
+### Compatibility
+
+- 无行为变更；仅修复 1.7.0 引入的 npx 启动路径回归
+- 验证：junction 等效符号链接场景 stdio 握手通过；`npm run test:http` 通过；`npm run test:unit` 13/13 通过
+
 ## [1.7.0] - 2026-08-04
 
 ### Added
